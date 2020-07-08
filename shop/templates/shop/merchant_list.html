@@ -1,0 +1,75 @@
+{% extends 'shop/basic.html' %}
+{% block title%} Visa Anywhere{% endblock %}
+{% block body %}
+<div class="container my-3">
+    <h2>Merchants Nearby Your Location...</h2>
+    <table class="table table-hover my-4">
+        <thead>
+          <tr>
+            <th scope="col">Merchant Name</th>
+            <th scope="col">Current Wait Time</th>
+            <th scope="col">Address</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for x in merchant_list %}
+                <tr>
+                    <td><a href="{% url 'shop:product_list' x.id %}">{{x.name}}</a></td>
+                    <td>{{x.wait_time}}</td>
+                    <td>{{x.address}}</td>
+                  </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+      <div class="my-2"><a href="{% url 'shop:merchant_list' %}"><button type="button" id="mer_list" class="btn btn-success">View Map</button></a></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    // Find out the cart items from localStorage
+    if (localStorage.getItem('cart') == null) {
+        var cart = {};
+    } else {
+        cart = JSON.parse(localStorage.getItem('cart'));
+        document.getElementById('cart').innerHTML = Object.keys(cart).length;
+        updateCart(cart);
+    }
+    //Add Popover to cart
+    $('#popcart').popover();
+    updatePopover(cart);
+    
+    function updatePopover(cart){
+      var popStr="";
+      popStr=popStr + "<h6>Items in your cart</h6><div class='mx-2 my-2'>";
+      var i=1;
+      let id=-1;
+      for(var item in cart){
+          popStr=popStr + "<b>"+ i + "</b>. ";
+          popStr=popStr+cart[item][1] + "... Qty: "+ cart[item][0]+ '<br>';
+          i=i+1;
+          id=cart[item][3];
+      }
+      var locate = "{% url 'shop:checkout' 12345 %}".replace(/12345/, id.toString());
+      if(id!=-1)
+      popStr=popStr+`</div><a href=${locate}><button id='checkout' class='btn btn-success'>Checkout</button></a> <button id='clearCart' onclick='clearCart()' class='btn btn-success'>Clear Cart</button>`;
+      document.getElementById("popcart").setAttribute('data-content', popStr);
+      $('#popcart').popover('show');
+  }
+    function updateCart(cart) {
+        localStorage.setItem('cart', JSON.stringify(cart));
+        var count=0;
+        for(var i=0;i<Object.keys(cart).length;i++)
+        count=count+Object.values(cart)[i][0];
+        document.getElementById('cart').innerHTML = count;
+        updatePopover(cart);
+    }
+    function clearCart(){
+        cart=JSON.parse(localStorage.getItem('cart'));
+        localStorage.clear();
+        cart={};
+        updateCart(cart);
+    }
+    </script>
+{% endblock %}

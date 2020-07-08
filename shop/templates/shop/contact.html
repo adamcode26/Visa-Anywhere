@@ -1,0 +1,80 @@
+{% extends 'shop/basic.html' %}
+
+{% block title%} Contact Us - Visa Anywhere{% endblock %}
+{% block body %}
+<div class="container my-3">
+    <h3>Contact Us</h3>
+    <form action="/shop/contact/" method="post"> {% csrf_token %}
+  <div class="form-group">
+    <label for="name">Name</label>
+    <input type="text" class="form-control" id="name" name='name' placeholder="Enter Your Name">
+  </div>
+  <div class="form-group">
+    <label for="name">Email</label>
+    <input type="email" class="form-control" id="email" name='email' placeholder="Enter Your Email">
+  </div>
+
+    <div class="form-group">
+    <label for="name">Phone</label>
+    <input type="tel" class="form-control" id="phone" name='phone' placeholder="Enter Your Phone Number">
+  </div>
+
+
+   <div class="form-group">
+    <label for="desc">How May We Help You?</label>
+    <textarea class="form-control" id="desc" name='desc' rows="3"></textarea>
+  </div>
+        <button type="submit" class="btn btn-success">Submit</button>
+</form>
+
+
+
+</div>
+{% endblock %}
+{% block js %}
+<script>
+  // Find out the cart items from localStorage
+  if (localStorage.getItem('cart') == null) {
+      var cart = {};
+  } else {
+      cart = JSON.parse(localStorage.getItem('cart'));
+      document.getElementById('cart').innerHTML = Object.keys(cart).length;
+      updateCart(cart);
+  }
+  //Add Popover to cart
+  $('#popcart').popover();
+  updatePopover(cart);
+  
+  function updatePopover(cart){
+      var popStr="";
+      popStr=popStr + "<h6>Items in your cart</h6><div class='mx-2 my-2'>";
+      var i=1;
+      let id=-1;
+      for(var item in cart){
+          popStr=popStr + "<b>"+ i + "</b>. ";
+          popStr=popStr+cart[item][1] + "... Qty: "+ cart[item][0]+ '<br>';
+          i=i+1;
+          id=cart[item][3];
+      }
+      var locate = "{% url 'shop:checkout' 12345 %}".replace(/12345/, id.toString());
+      if(id!=-1)
+      popStr=popStr+`</div><a href=${locate}><button id='checkout' class='btn btn-success'>Checkout</button></a> <button id='clearCart' onclick='clearCart()' class='btn btn-success'>Clear Cart</button>`;
+      document.getElementById("popcart").setAttribute('data-content', popStr);
+      $('#popcart').popover('show');
+  }
+  function updateCart(cart) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+      var count=0;
+      for(var i=0;i<Object.keys(cart).length;i++)
+      count=count+Object.values(cart)[i][0];
+      document.getElementById('cart').innerHTML = count;
+      updatePopover(cart);
+  }
+  function clearCart(){
+      cart=JSON.parse(localStorage.getItem('cart'));
+      localStorage.clear();
+      cart={};
+      updateCart(cart);
+  }
+  </script>
+{% endblock %}

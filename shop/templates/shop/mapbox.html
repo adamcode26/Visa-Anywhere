@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merchant List Map</title>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.css' rel='stylesheet' />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+    integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  <style>
+    * {
+      padding: 0px;
+      margin: 0px;
+    }
+
+    #map {
+      width: 99vw;
+      height: 91vh;
+    }
+
+    #mer_list {
+      position: absolute;
+      bottom: 15px;
+      right: 16px;
+      z-index: 1;
+      margin: 8px;
+    }
+    /* #mer_list {
+      position: relative;
+      z-index: 1;
+      left: 1320px;
+      top: 600px;
+      margin: 8px;
+    } */
+
+    .visa {
+      background-color: #00276a;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark visa">
+    <img class="navbar-brand" style="width: 7rem;" src="https://cdn.visa.com/cdn/assets/images/logos/visa/logo.png"
+      alt="Visa logo">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/shop">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="#">About Us</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/shop/contact">Contact Us</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="{% url 'shop:user_order_list' %}">My Orders</a>
+        </li>
+      </ul>
+      <form method='get' action='/shop/merchant_list/search/' class="form-inline my-2 my-lg-0">
+        <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="search"
+          id="search">
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+      </form>
+      <button type="button" class="btn btn-success mx-2" data-html="true" id="popcart" data-container="body"
+        data-toggle="popover" data-placement="bottom" data-content="Click to View Cart">
+        Cart (<span id="cart">0</span>)
+      </button>
+      {% if user.is_authenticated %}
+      <a href="{% url 'shop:logout' %}"><button onclick="clearCart()" class="btn btn-success"
+          type="button">Logout</button></a>
+      {% else %}
+      <a href="{% url 'shop:login' %}"><button onclick="clearCart()" type="button" class="btn btn-success">Log
+          In</button></a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Promise polyfill script required to use Mapbox GL Geocoder in IE 11 -->
+  <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+  <script
+    src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.js"></script>
+  <link rel="stylesheet"
+    href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.css"
+    type="text/css" />
+  <p style="display: none;" id="zip">{{zipcode}}</p>
+  <p style="display: none;" id="lat">{{lat}}</p>
+  <p style="display: none;" id="lon">{{lon}}</p>
+  {% for key,value in merchant.items %}
+  <p style="display: none;" id="wait{{key}}">{{value}}</p>
+  {% endfor %}
+  <div class="my-1" id='map'><a href="{% url 'shop:merchant_list2' %}"><button type="button" id="mer_list"
+        class="btn btn-success">View Merchant List</button></a></div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
+    integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"
+    integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+    crossorigin="anonymous"></script>
+  <script>function clearCart() {
+      cart = JSON.parse(localStorage.getItem('cart'));
+      for (var item in cart) {
+        if (document.getElementById('div' + item) != null)
+          document.getElementById('div' + item).innerHTML = '<button id="' + item + '" class="btn btn-primary cart">Add To Cart</button>'
+      }
+      localStorage.clear();
+      cart = {};
+      updateCart(cart);
+    }</script>
+</body>
+<script src='https://api.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.js'></script>
+
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYW1hbjg5NDkiLCJhIjoiY2tieHo1enN0MHRnZDJxbW90dTJpdWs0YiJ9.3HMmnicxaqGbX-7T95qwdw';
+  var lat = document.getElementById('lat').innerHTML;
+  var lon = document.getElementById('lon').innerHTML;
+  var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v11',
+    center: [lon, lat],
+    zoom: 11.5
+  });
+  new mapboxgl.Marker({ color: "#b40219", draggable: false })
+    .setLngLat([lon, lat])
+    .setPopup(new mapboxgl.Popup().setHTML("<h5>Your Location</h5>"))
+    .addTo(map);
+  map.addControl(
+    new MapboxDirections({
+      accessToken: mapboxgl.accessToken
+    }),
+    'top-left'
+  );
+  map.addControl(new mapboxgl.NavigationControl());
+
+</script>
+<script>
+  var urls = ["{% url 'shop:load_json' %}", "{% url 'shop:load_queue_json' %}"];
+  function updateMap() {
+    urls.forEach(function (url) {
+      fetch(url)
+        .then(response => response.json())
+        .then(rsp => {
+          rsp.forEach(element => {
+            let zip = document.getElementById('zip').innerHTML;
+            if (zip == element.zipcode) {
+              latitude = element.lat;
+              longitude = element.lon;
+              if (url == "{% url 'shop:load_queue_json' %}") {
+                new mapboxgl.Marker({ draggable: false })
+                  .setLngLat([longitude, latitude])
+                  .setPopup(new mapboxgl.Popup().setHTML(`<div>Merchant Name: ${element.name}</div><div>Merchant Address: ${element.address}</div><div>Phone: ${element.phone}</div><div>Wait Time: ${element.wait_time} seconds</div><div><a href="#"><button type="button" class="btn btn-success btn-sm">Proceed To Shop</button></a></div>`))
+                  .addTo(map);
+              }
+              else {
+                var location = "{% url 'shop:product_list' 12345 %}".replace(/12345/, element.id.toString());
+                // Mark on the map
+                var wait=document.getElementById('wait'+element.id).innerHTML;
+                console.log(wait)
+                new mapboxgl.Marker({ draggable: false })
+                  .setLngLat([longitude, latitude])
+                  .setPopup(new mapboxgl.Popup().setHTML(`<div>Merchant Name: ${element.name}</div><div>Merchant Address: ${element.address}</div><div>Phone: ${element.phone}</div><div>Wait Time: ${wait} </div><div><a href=${location}><button type="button" class="btn btn-success btn-sm">Proceed To Shop</button></a></div>`))
+                  .addTo(map);
+              }
+            }
+          })
+        })
+    });
+  }
+  updateMap();
+
+</script>
+<script>
+  // Find out the cart items from localStorage
+  if (localStorage.getItem('cart') == null) {
+    var cart = {};
+  } else {
+    cart = JSON.parse(localStorage.getItem('cart'));
+    document.getElementById('cart').innerHTML = Object.keys(cart).length;
+    updateCart(cart);
+  }
+  //Add Popover to cart
+  $('#popcart').popover();
+  updatePopover(cart);
+
+  function updatePopover(cart) {
+    var popStr = "";
+    popStr = popStr + "<h6>Items in your cart</h6><div class='mx-2 my-2'>";
+    var i = 1;
+    let id = -1;
+    for (var item in cart) {
+      popStr = popStr + "<b>" + i + "</b>. ";
+      popStr = popStr + cart[item][1] + "... Qty: " + cart[item][0] + '<br>';
+      i = i + 1;
+      id = cart[item][3];
+    }
+    var locate = "{% url 'shop:checkout' 12345 %}".replace(/12345/, id.toString());
+    if (id != -1)
+      popStr = popStr + `</div><a href=${locate}><button id='checkout' class='btn btn-success'>Checkout</button></a> <button id='clearCart' onclick='clearCart()' class='btn btn-success'>Clear Cart</button>`;
+    document.getElementById("popcart").setAttribute('data-content', popStr);
+    $('#popcart').popover('show');
+  }
+  function updateCart(cart) {
+    localStorage.setItem('cart', JSON.stringify(cart));
+    var count = 0;
+    for (var i = 0; i < Object.keys(cart).length; i++)
+      count = count + Object.values(cart)[i][0];
+    document.getElementById('cart').innerHTML = count;
+    updatePopover(cart);
+  }
+  function clearCart() {
+    cart = JSON.parse(localStorage.getItem('cart'));
+    localStorage.clear();
+    cart = {};
+    updateCart(cart);
+  }
+</script>
+
+</html>
